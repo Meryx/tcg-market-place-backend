@@ -8,6 +8,8 @@ import java.util.Arrays;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @SpringBootApplication
 public class TcgStoreMenaApplication {
@@ -15,6 +17,9 @@ public class TcgStoreMenaApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(TcgStoreMenaApplication.class, args);
 	}
+
+
+
 
 	@Bean
 	public CommandLineRunner commandLineRunner(ApplicationContext ctx) {

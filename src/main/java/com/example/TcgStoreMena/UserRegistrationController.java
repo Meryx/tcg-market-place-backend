@@ -16,11 +16,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
 import java.util.Map;
@@ -35,6 +31,7 @@ public class UserRegistrationController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @CrossOrigin(origins = "http://localhost:9500")
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> createUser(@RequestBody UserRegistrationDto userRegistrationDto) {
         User user = userService.createUser(userRegistrationDto);
@@ -91,7 +88,7 @@ public class UserRegistrationController {
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .subject(email)
                 .issuer("tcg-backend")
-                .expirationTime(new Date(System.currentTimeMillis() + 3600 * 1000)) // Set expiration time (e.g., 1 hour)
+                .expirationTime(new Date(System.currentTimeMillis() + 604800 * 1000)) // Set expiration time (e.g., 1 hour)
                 .build();
 
         // Create a new signer using the secret key
