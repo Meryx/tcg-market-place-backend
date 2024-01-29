@@ -11,6 +11,11 @@ import com.nimbusds.jwt.SignedJWT;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,6 +32,9 @@ public class UserRegistrationController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> createUser(@RequestBody UserRegistrationDto userRegistrationDto) {
         User user = userService.createUser(userRegistrationDto);
@@ -39,31 +47,55 @@ public class UserRegistrationController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginDto loginDto) {
-        // Authenticate user (e.g., using username and password from loginRequest)
-        // ...
+    public ResponseEntity<Map<String, String>> login(@RequestBody LoginDto loginDto) {
 
-        try {
-            // Create JWT
-            String jwtToken = createJwtToken();
-            // Return JWT to the user
-            return ResponseEntity.ok(jwtToken);
-        } catch (JOSEException e) {
-            System.out.println(e.toString());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error creating JWT");
+        String email = loginDto.getEmail();
+        String password = loginDto.getPassword();
+
+
+
+        User user = userService.findByEmail(email);
+        if (user != null && passwordEncoder.matches(password, user.getPassword())) {
+            try {
+                String jwtToken = createJwtToken(email);
+                Map<String, String> response = Map.ofEntries(
+                        Map.entry("message", "User logged-in successfully"),
+                        Map.entry("statusCode", "200"),
+                        Map.entry("JWT", jwtToken)
+                );
+                return new ResponseEntity<Map<String, String>>(response, HttpStatus.OK);
+            } catch (Exception e) {
+                Map<String, String> response = Map.ofEntries(
+                        Map.entry("message", e.toString()),
+                        Map.entry("statusCode", "500")
+                );
+                return new ResponseEntity<Map<String, String>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        } else {
+            Map<String, String> response = Map.ofEntries(
+                    Map.entry("message", "Invalid email or password"),
+                    Map.entry("statusCode", "401")
+            );
+            return new ResponseEntity<Map<String, String>>(response, HttpStatus.UNAUTHORIZED);
         }
     }
 
-    private String createJwtToken() throws JOSEException {
+    @PostMapping("/authenticate")
+    public ResponseEntity<Boolean> authenticate(@RequestBody String jwtToken) {
+        boolean isValid = JwtUtil.validateToken(jwtToken);
+        return ResponseEntity.ok(isValid);
+    }
+
+    private String createJwtToken(String email) throws JOSEException {
         // Prepare JWT with claims set
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .subject("Anwar")
-                .issuer("your-issuer")
+                .subject(email)
+                .issuer("tcg-backend")
                 .expirationTime(new Date(System.currentTimeMillis() + 3600 * 1000)) // Set expiration time (e.g., 1 hour)
                 .build();
 
         // Create a new signer using the secret key
-        String secretKey = "do-you-believe-in-magic-in-a-young-girl-heart";
+        String secretKey = System.getenv("JWT_SECRET_KEY");
         JWSSigner signer = new MACSigner(secretKey.getBytes());
 
         // Create a new JWT
@@ -74,4 +106,6 @@ public class UserRegistrationController {
         // Serialize to a compact form
         return signedJWT.serialize();
     }
+
+
 }
