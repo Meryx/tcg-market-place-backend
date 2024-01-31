@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -31,9 +33,51 @@ public class UserRegistrationController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @CrossOrigin(origins = "http://localhost:9500")
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> createUser(@RequestBody UserRegistrationDto userRegistrationDto) {
+        if(userService.findByEmail(userRegistrationDto.getEmail()) != null)
+        {
+            Map<String, String> response = Map.ofEntries(
+                    Map.entry("message", "Email already exists"),
+                    Map.entry("statusCode", "400")
+            );
+
+            return new ResponseEntity<Map<String, String>>(response, HttpStatus.BAD_REQUEST);
+        }
+
+        String password = userRegistrationDto.getPassword();
+        String regex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^a-zA-Z\\d]).{8,}$";
+
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(password);
+        boolean matches = matcher.matches();
+
+        if(!matches)
+        {
+            Map<String, String> response = Map.ofEntries(
+                    Map.entry("message", "Weak password"),
+                    Map.entry("statusCode", "400")
+            );
+
+            return new ResponseEntity<Map<String, String>>(response, HttpStatus.BAD_REQUEST);
+        }
+
+        String email = userRegistrationDto.getEmail();
+        regex = "(?:[a-zA-Z0-9_'^&/+-]+(?:\\.[a-zA-Z0-9_'^&/+-]+)*|\"[^(\\\\|\")]*\")@(?:[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*\\.[a-zA-Z]{2,})";
+
+        pattern = Pattern.compile(regex);
+        matcher = pattern.matcher(email);
+        matches = matcher.matches();
+
+        if(!matches)
+        {
+            Map<String, String> response = Map.ofEntries(
+                    Map.entry("message", "Not a valid email address"),
+                    Map.entry("statusCode", "400")
+            );
+            return new ResponseEntity<Map<String, String>>(response, HttpStatus.BAD_REQUEST);
+        }
+
         User user = userService.createUser(userRegistrationDto);
         Map<String, String> response = Map.ofEntries(
                 Map.entry("message", "User created successfully"),
