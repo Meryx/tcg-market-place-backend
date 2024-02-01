@@ -96,6 +96,7 @@ public class UserRegistrationController {
 
 
         User user = userService.findByEmail(email);
+
         if (user != null && passwordEncoder.matches(password, user.getPassword())) {
             try {
                 String jwtToken = createJwtToken(email);
